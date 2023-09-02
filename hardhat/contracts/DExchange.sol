@@ -98,4 +98,21 @@ contract DExchange is ERC20 {
         return (ethToReturn, tknToReturn);
     }
 
+    // Users must be able to use the pool to swap ETH<>TKN.
+    // The following is a helper function to compute the amount of token the user can get.
+    // Computation is based on xy = k = (x+dx)(y-dy) --> dy = (y*dx)/(x+dx)
+    function getOutputAmountFromSwap (
+        uint256 inputAmount,    // dx
+        uint256 inputReserve,   // x
+        uint256 outputReserve   // y
+    ) public pure returns (uint256) {
+        require (inputReserve > 0 && outputReserve > 0, "BAD_INPUT_OUTPUT_RESERVE");
+
+        uint256 inputAmountWithFee = inputAmount * 997/10; // 3% fee of input token
+        uint256 numerator = outputReserve * inputAmountWithFee;
+        uint256 denominator = (inputReserve * 100) + inputAmountWithFee;
+
+        return numerator / denominator;
+    }
+
 }
