@@ -115,4 +115,37 @@ contract DExchange is ERC20 {
         return numerator / denominator;
     }
 
+    // Implementation of the ETH for TKN swap
+    // -> I Want to get at least minAmountOut TKN for msg.value ETH.
+    // The function is payable because it needs to be able to receive Ethers
+    function swapETHForTKN(uint256 minAmountOut) public payable {
+        uint256 tknReserveBalance = getReserve(); // outputReserve
+        uint256 tknToReceive = getOutputAmountFromSwap(
+            msg.value,
+            address(this).balance - msg.value,
+            tknReserveBalance
+        );
+
+        require (tknToReceive >= minAmountOut, "TKN to receive is below expectation");
+
+        // Transfer TKN from the contract to the sender
+        ERC20(tokenAddress).transfer(msg.sender, tknToReceive);
+    }
+
+    // Implementation of the TKN for ETH swap
+    // -> I Want to get at least minAmountOut ETH for msg.value TKN.
+    function swapTKNForETH(uint256 tknToSwap, uint256 minAmountOut) public {
+        uint256 tokenReserveBalance = getReserve(); // input Reserve
+        uint256 ethToReceive = getOutputAmountFromSwap(
+            tknToSwap,
+            tokenReserveBalance,
+            address(this).balance
+        );
+
+        require (ethToReceive >= minAmountOut, "ETH to receive is below expectation");
+        // transfer TKN from sender to contract
+        ERC20(tokenAddress).transferFrom(msg.sender, address(this), tknToSwap);
+        // transfer ETH from contract to sender
+        payable(msg.sender).transfer(ethToReceive);
+    }
 }
