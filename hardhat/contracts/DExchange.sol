@@ -65,5 +65,37 @@ contract DExchange is ERC20 {
         _mint(msg.sender, lpTokensToMint);
         return lpTokensToMint;
     }
-    
+
+    // The user should be able to remove liquidity as well
+    // removing liquidity requires the burning of lpETHTOKEN tokens.
+    // The function returns the amount of ETH and TOKEN to be returned.
+    function removeLiquidity(uint256 amountLpTokens) public returns (uint256, uint256) {
+        require (amountLpTokens > 0, "Amount of LPTokens returning must be positive.");
+        require (amountLpTokens <= balanceOf(msg.sender), "Not enough LPTokens to return.");
+
+        uint256 ethReserveBalance = address(this).balance;
+        uint256 lpTokensTotalSupply= totalSupply();
+
+        // compute amount of ETH and TKN to be returned to the user based on amountLpTokens to be burnt
+        /*  Example
+            Alice wants to return 20 lpETHTOKEN
+            She gets: 
+                - (20 * 110) / 110 = 20 ETH
+            and - (20 * 110) / 110 = 20 TKN
+            At the end, Alice owns 80 [lpETHTKN] / 90 [totalSupply] =  88% of the pool
+            Burnt lpETHTKN do not count in supply.
+         */
+        uint256 ethToReturn = (amountLpTokens * ethReserveBalance) / lpTokensTotalSupply;
+        uint256 tknToReturn = (amountLpTokens * getReserve())/ lpTokensTotalSupply;
+
+        // burn the lp tokens
+        _burn(msg.sender, amountLpTokens);
+        // transfer ETH to the user
+        payable(msg.sender).transfer(ethToReturn);
+        // transfer TKN to the user
+        ERC20(tokenAddress).transfer(msg.sender, tknToReturn);
+
+        return (ethToReturn, tknToReturn);
+    }
+
 }
